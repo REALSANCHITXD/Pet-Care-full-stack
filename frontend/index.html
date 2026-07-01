@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dr. Paws — Premium Pet Care Platform</title>
+    <meta name="description" content="Dr. Paws — Your all-in-one pet care hub. AI vet chatbot, local vet finder, and instant pet store." />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐾</text></svg>" />
+    <link rel="stylesheet" href="css/main.css" />
+</head>
+<body>
+
+<div class="auth-bg">
+    <div class="auth-card">
+
+        <!-- Logo -->
+        <div class="auth-logo">
+            <div class="auth-logo-icon">🐾</div>
+            <span class="auth-logo-text">Dr. Paws</span>
+        </div>
+
+        <!-- Tab switcher -->
+        <div class="auth-tabs">
+            <button class="auth-tab active" data-tab="login">Login</button>
+            <button class="auth-tab" data-tab="register">Register</button>
+        </div>
+
+        <!-- LOGIN FORM -->
+        <form id="login-form">
+            <div class="form-group">
+                <label class="form-label" for="login-email">Email address</label>
+                <input id="login-email" class="form-input" type="email" placeholder="you@example.com" required autocomplete="email" />
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="login-password">Password</label>
+                <input id="login-password" class="form-input" type="password" placeholder="••••••••" required autocomplete="current-password" />
+            </div>
+            <p id="login-error" class="form-error hidden"></p>
+            <button type="submit" class="btn-primary" data-label="Sign In →" style="margin-top:8px">
+                Sign In →
+            </button>
+        </form>
+
+        <!-- REGISTER FORM -->
+        <form id="register-form" class="hidden">
+            <div class="form-group">
+                <label class="form-label" for="reg-name">Full name</label>
+                <input id="reg-name" class="form-input" type="text" placeholder="Alex Johnson" required autocomplete="name" />
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="reg-email">Email address</label>
+                <input id="reg-email" class="form-input" type="email" placeholder="you@example.com" required autocomplete="email" />
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="reg-password">Password</label>
+                <input id="reg-password" class="form-input" type="password" placeholder="Min 8 characters" required autocomplete="new-password" />
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="reg-confirm">Confirm password</label>
+                <input id="reg-confirm" class="form-input" type="password" placeholder="Repeat password" required autocomplete="new-password" />
+            </div>
+            <p id="reg-error" class="form-error hidden"></p>
+            <button type="submit" class="btn-primary" data-label="Create Account →" style="margin-top:8px">
+                Create Account →
+            </button>
+        </form>
+
+    </div>
+</div>
+
+<!-- Toast Container -->
+<div class="toast-container" id="toast-container"></div>
+
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+</body>
+</html>
