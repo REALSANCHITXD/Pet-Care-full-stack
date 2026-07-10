@@ -17,8 +17,8 @@ def create_product(products_create : Products_Create, current_user: str = Depend
     return new_product
 
 @router.get("/",response_model=List[Products_Out], status_code=status.HTTP_200_OK)
-def get_all_products():
-    products = db_get_all_products()
+def get_all_products(skip: int = 0, limit: int = 20):
+    products = db_get_all_products(skip, limit)
     return products or []
 
 @router.get("/search",response_model=List[Products_Out], status_code=status.HTTP_200_OK)
@@ -34,3 +34,17 @@ def get_one_product(id:int, current_user: str = Depends(get_current_user)):
     if not product:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="product not found")
     return product
+
+@router.patch("/{id}",response_model=Products_Out, status_code=status.HTTP_202_ACCEPTED)
+def update_product(id:int, product_update:Products_Update, current_user: str = Depends(get_current_user)):
+    product = db_update_product(id, product_update.model_dump(exclude_unset=True))
+    if not product:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="product not found")
+    return product
+
+@router.delete("/{id}", status_code=status.HTTP_200_OK)
+def delete_product(id:int, current_user: str = Depends(get_current_user)):
+    product = db_delete_product(id)
+    if not product:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="product not found")
+    return {"message": "product deleted successfully"}

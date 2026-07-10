@@ -1,15 +1,16 @@
 from pydantic_core import ErrorDetails
 from fastapi import APIRouter,status,HTTPException, Depends
 from typing import List
-from Models.booking import db_booking_create,db_booking_delete,db_booking_get_all,db_booking_get_one,db_booking_update
+from Models.booking import db_booking_create,db_booking_delete,db_booking_get_all,db_booking_get_one,db_booking_update,db_booking_get_by_user
 from schemas.booking import Booking_create, Booking_out, Booking_update
 from auth import get_current_user
 
 router=APIRouter()
 
 @router.get("/bookings",response_model = List[Booking_out],status_code = status.HTTP_200_OK)
-def get_bookings(current_user: str = Depends(get_current_user)):
-    all_bookings = db_booking_get_all()
+def get_bookings(current_user: dict = Depends(get_current_user)):
+    user_id = current_user.get("id")
+    all_bookings = db_booking_get_by_user(user_id)
     if not all_bookings:
         raise HTTPException(status_code = status.HTTP_404_NOT_FOUND,detail = "There is nothing in the database.")
     return all_bookings
@@ -30,7 +31,7 @@ def booking_create(booking_create:Booking_create, current_user: str = Depends(ge
         reason=booking_create.reason
     )
     if not new_booking:
-        raise HTTPException(status_code = status.HTTP_400_BAD_REQUEST,detail = f"booking could not be created")
+        raise HTTPException(status_code = status.HTTP_400_BAD_REQUEST,detail = f"booking could not be created. The vet might already be booked at this time.")
     return new_booking
 
 @router.patch("/bookings/{id}",response_model = Booking_out,status_code=status.HTTP_202_ACCEPTED)

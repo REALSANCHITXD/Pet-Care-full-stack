@@ -98,3 +98,11 @@ def db_delete_order(id):
     deleted_order = cursor.fetchone()
     conn.commit()
     return deleted_order
+
+def db_mark_order_paid(id):
+    cursor.execute("UPDATE orders SET status = 'paid' WHERE id = %s RETURNING *", (id,))
+    updated_order = cursor.fetchone()
+    conn.commit()
+    if updated_order:
+        updated_order['items'] = db_get_order_items(id)
+    return updated_order

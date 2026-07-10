@@ -1,7 +1,7 @@
 from fastapi import APIRouter,status, HTTPException, Depends
 from typing import List
 from schemas.orders import Order_create, Order_out, Order_update
-from Models.orders import db_create_order, db_get_orders, db_get_orders_by_user, db_get_one_order, db_update_order, db_delete_order
+from Models.orders import db_create_order, db_get_orders, db_get_orders_by_user, db_get_one_order, db_update_order, db_delete_order, db_mark_order_paid
 from auth import get_current_user
 
 router = APIRouter()
@@ -52,3 +52,15 @@ def delete_order(id: int, current_user: dict = Depends(get_current_user)):
     if not order:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
     return {"message": "order deleted successfully"}
+
+@router.post("/orders/{id}/pay", response_model=Order_out, status_code=status.HTTP_200_OK)
+def pay_order(id: int, current_user: dict = Depends(get_current_user)):
+    # Verify order belongs to user
+    order = db_get_one_order(id)
+    if not order:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
+    if order['user_id'] != current_user['id']:
+        raise HTTPException(status_code=403, detail="Not authorized")
+        
+    paid_order = db_mark_order_paid(id)
+    return paid_order

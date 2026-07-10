@@ -3,10 +3,19 @@ from datetime import datetime
 from typing import Optional
 
 def db_booking_create(user_id:int , vet_id:int,appointment_time:datetime , reason:Optional[str]=None):
+    # Check for collision
+    cursor.execute("SELECT * FROM bookings WHERE vet_id=%s AND appointment_time=%s", (vet_id, appointment_time))
+    if cursor.fetchone():
+        return None # Collision detected
+        
     cursor.execute("INSERT INTO bookings (user_id,vet_id,appointment_time ,reason) VALUES(%s,%s,%s,%s) RETURNING *",(user_id,vet_id,appointment_time,reason))
     new_book=cursor.fetchone()
     conn.commit()
     return new_book
+
+def db_booking_get_by_user(user_id: int):
+    cursor.execute("SELECT * FROM bookings WHERE user_id=%s", (user_id,))
+    return cursor.fetchall()
 
 def db_booking_get_all():
     cursor.execute("SELECT * FROM bookings")

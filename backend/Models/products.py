@@ -11,8 +11,8 @@ def db_create_product(name:str,description:str,price:float,stock:int,category:st
     conn.commit()
     return new_product
 
-def db_get_all_products():
-    cursor.execute("SELECT * FROM products")
+def db_get_all_products(skip: int = 0, limit: int = 20):
+    cursor.execute("SELECT * FROM products OFFSET %s LIMIT %s", (skip, limit))
     products = cursor.fetchall()
     return products
 

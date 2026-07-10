@@ -9,8 +9,8 @@ def db_create_vet(name :str,clinic_name:str,address:str,latitude:float,longitude
     conn.commit()
     return new_vet
 
-def db_get_all_vet():
-    cursor.execute("SELECT * FROM vets")
+def db_get_all_vet(skip: int = 0, limit: int = 20):
+    cursor.execute("SELECT * FROM vets OFFSET %s LIMIT %s", (skip, limit))
     all_vet = cursor.fetchall()
     return all_vet
 
@@ -44,4 +44,15 @@ def db_filter_rating_vet(rating:str,clinic_name:str):
     cursor.execute("SELECT * FROM vets WHERE rating >= %s AND clinic_name = %s",(rating,clinic_name))
     filter_rating_vet = cursor.fetchall()
     return filter_rating_vet
-  
+
+def db_filter_vets_by_proximity(lat: float, lng: float, limit: int = 10):
+    cursor.execute("""
+        SELECT *, 
+        ( 6371 * acos( cos( radians(%s) ) * cos( radians( latitude ) ) 
+        * cos( radians( longitude ) - radians(%s) ) + sin( radians(%s) ) 
+        * sin( radians( latitude ) ) ) ) AS distance 
+        FROM vets 
+        ORDER BY distance ASC 
+        LIMIT %s
+    """, (lat, lng, lat, limit))
+    return cursor.fetchall()
