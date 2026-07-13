@@ -1,51 +1,84 @@
-from database import conn, cursor
+from typing import Optional, List
+from datetime import datetime
+from sqlmodel import SQLModel, Field, Session, select, func
 
-def db_create_session(user_id: int):
-    cursor.execute("""
-        INSERT INTO chat_sessions (user_id)
-        VALUES (%s) RETURNING *
-    """, (user_id,))
-    session = cursor.fetchone()
-    conn.commit()
-    return session
 
-def db_get_session(session_id: int):
-    cursor.execute("SELECT * FROM chat_sessions WHERE id = %s", (session_id,))
-    return cursor.fetchone()
+# --- Table Models (DB) ---
+class ChatSession(SQLModel, table=True):
+    __tablename__ = "chat_sessions"
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: int = Field(foreign_key="users.id")
+    started_at: Optional[datetime] = Field(default=None)
 
-def db_get_user_sessions(user_id: int):
-    cursor.execute("""
-        SELECT * FROM chat_sessions WHERE user_id = %s
-        ORDER BY started_at DESC
-    """, (user_id,))
-    return cursor.fetchall()
+class ChatMessage(SQLModel, table=True):
+    __tablename__ = "chat_messages"
+    id: Optional[int] = Field(default=None, primary_key=True)
+    session_id: int = Field(foreign_key="chat_sessions.id")
+    sender: str  # "user" or "bot"
+    message: str
+    sent_at: Optional[datetime] = Field(default=None)
 
-def db_save_message(session_id: int, sender: str, message: str):
-    cursor.execute("""
-        INSERT INTO chat_messages (session_id, sender, message)
-        VALUES (%s, %s, %s) RETURNING *
-    """, (session_id, sender, message))
-    msg = cursor.fetchone()
-    conn.commit()
+
+# --- Response Schemas ---
+class ChatMessageOut(SQLModel):
+    id: int
+    session_id: int
+    sender: str
+    message: str
+    sent_at: Optional[datetime] = None
+
+class ChatSessionOut(SQLModel):
+    id: int
+    user_id: int
+    started_at: Optional[datetime] = None
+
+class ChatMessageIn(SQLModel):
+    session_id: int
+    message: str
+
+class ChatResponse(SQLModel):
+    user_message: ChatMessageOut
+    bot_reply: ChatMessageOut
+
+
+# --- CRUD Functions ---
+def db_create_session(session: Session, user_id: int) -> ChatSession:
+    chat_session = ChatSession(user_id=user_id)
+    session.add(chat_session)
+    session.commit()
+    session.refresh(chat_session)
+    return chat_session
+
+def db_get_session(session: Session, session_id: int):
+    return session.get(ChatSession, session_id)
+
+def db_get_user_sessions(session: Session, user_id: int):
+    return session.exec(
+        select(ChatSession).where(ChatSession.user_id == user_id).order_by(ChatSession.started_at.desc())
+    ).all()
+
+def db_save_message(session: Session, session_id: int, sender: str, message: str) -> ChatMessage:
+    msg = ChatMessage(session_id=session_id, sender=sender, message=message)
+    session.add(msg)
+    session.commit()
+    session.refresh(msg)
     return msg
 
-def db_get_session_messages(session_id: int):
-    cursor.execute("""
-        SELECT * FROM chat_messages
-        WHERE session_id = %s
-        ORDER BY sent_at ASC
-    """, (session_id,))
-    return cursor.fetchall()
+def db_get_session_messages(session: Session, session_id: int):
+    return session.exec(
+        select(ChatMessage).where(ChatMessage.session_id == session_id).order_by(ChatMessage.sent_at.asc())
+    ).all()
 
-def db_count_user_messages_today(user_id: int):
-    """Count how many messages the user sent today (for free tier limit)."""
-    cursor.execute("""
-        SELECT COUNT(*) as count
-        FROM chat_messages cm
-        JOIN chat_sessions cs ON cm.session_id = cs.id
-        WHERE cs.user_id = %s
-          AND cm.sender = 'user'
-          AND cm.sent_at::date = CURRENT_DATE
-    """, (user_id,))
-    result = cursor.fetchone()
-    return result['count'] if result else 0
+def db_count_user_messages_today(session: Session, user_id: int) -> int:
+    from datetime import date
+    today = date.today()
+    result = session.exec(
+        select(func.count(ChatMessage.id))
+        .join(ChatSession, ChatMessage.session_id == ChatSession.id)
+        .where(
+            ChatSession.user_id == user_id,
+            ChatMessage.sender == "user",
+            func.date(ChatMessage.sent_at) == today
+        )
+    ).one()
+    return result or 0

@@ -1,53 +1,98 @@
-from database import conn, cursor
+from typing import Optional
 from datetime import datetime
+from sqlmodel import SQLModel, Field, Session, select, or_
 
-def db_create_product(name:str,description:str,price:float,stock:int,category:str,rating:float):
-    cursor.execute("""
-        INSERT INTO products (name,description,price,stock,category,rating)
-        VALUES (%s,%s,%s,%s,%s,%s)
-        RETURNING *
-    """,(name,description,price,stock,category,rating))
-    new_product=cursor.fetchone()
-    conn.commit()
-    return new_product
 
-def db_get_all_products(skip: int = 0, limit: int = 20):
-    cursor.execute("SELECT * FROM products OFFSET %s LIMIT %s", (skip, limit))
-    products = cursor.fetchall()
-    return products
+# --- Table Model (DB) ---
+class Product(SQLModel, table=True):
+    __tablename__ = "products"
+    id: Optional[int] = Field(default=None, primary_key=True)
+    name: str
+    description: Optional[str] = None
+    price: float
+    stock: int = 1
+    category: Optional[str] = None
+    rating: Optional[float] = None
+    created_at: Optional[datetime] = Field(default=None)
 
-def db_get_one_product(id:int):
-    cursor.execute("SELECT * FROM products WHERE id=%s",(id,))
-    product = cursor.fetchone()
+
+# --- Request Schemas ---
+class ProductCreate(SQLModel):
+    name: str
+    description: Optional[str] = None
+    price: float
+    stock: int = 1
+    category: Optional[str] = None
+    rating: Optional[float] = None
+
+class ProductUpdate(SQLModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    price: Optional[float] = None
+    stock: Optional[int] = None
+    category: Optional[str] = None
+    rating: Optional[float] = None
+
+class ProductFilter(SQLModel):
+    category: Optional[str] = None
+    price_up: Optional[float] = None
+    price_down: Optional[float] = None
+    rating: Optional[float] = None
+
+
+# --- Response Schema ---
+class ProductOut(SQLModel):
+    id: int
+    name: str
+    description: Optional[str] = None
+    price: float
+    stock: int
+    category: Optional[str] = None
+    rating: Optional[float] = None
+    created_at: Optional[datetime] = None
+
+
+# --- CRUD Functions ---
+def db_create_product(session: Session, data: ProductCreate) -> Product:
+    product = Product(**data.model_dump())
+    session.add(product)
+    session.commit()
+    session.refresh(product)
     return product
 
-def db_update_product(id:int,update_data:dict):
-    set_clause = ", ".join([f"{key} = %s" for key in update_data.keys()])
-    values = list(update_data.values())
-    values.append(id)
-    cursor.execute(f"""
-        UPDATE products SET {set_clause} WHERE id = %s RETURNING *
-    """,values)
-    updated_product = cursor.fetchone()
-    conn.commit()
-    return updated_product
+def db_get_all_products(session: Session, skip: int = 0, limit: int = 20):
+    return session.exec(select(Product).offset(skip).limit(limit)).all()
 
-def db_delete_product(id:int):
-    cursor.execute("DELETE FROM products WHERE id = %s RETURNING *",(id,))
-    deleted_product = cursor.fetchone()
-    conn.commit()
-    return deleted_product
+def db_get_one_product(session: Session, id: int):
+    return session.get(Product, id)
 
-def db_filter_products(category:str ,price_up:float,rating:float,price_down:float):
+def db_update_product(session: Session, id: int, data: ProductUpdate):
+    product = session.get(Product, id)
+    if not product:
+        return None
+    for key, value in data.model_dump(exclude_unset=True).items():
+        setattr(product, key, value)
+    session.add(product)
+    session.commit()
+    session.refresh(product)
+    return product
+
+def db_delete_product(session: Session, id: int):
+    product = session.get(Product, id)
+    if not product:
+        return None
+    session.delete(product)
+    session.commit()
+    return product
+
+def db_filter_products(session: Session, category: str = None, price_up: float = None, price_down: float = None, rating: float = None):
+    query = select(Product)
     if category:
-        cursor.execute("SELECT * FROM products WHERE category=%s",(category,))
-        return cursor.fetchall()
+        query = query.where(Product.category == category)
     if price_up:
-       cursor.execute("SELECT * FROM products WHERE price<=%s",(price_up,))
-       return cursor.fetchall()
+        query = query.where(Product.price <= price_up)
     if price_down:
-       cursor.execute("SELECT * FROM products WHERE price>=%s",(price_down,))
-       return cursor.fetchall()
+        query = query.where(Product.price >= price_down)
     if rating:
-        cursor.execute("SELECT * FROM products WHERE rating=%s",(rating,))
-        return cursor.fetchall()
+        query = query.where(Product.rating == rating)
+    return session.exec(query).all()

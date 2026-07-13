@@ -1,108 +1,146 @@
-from database import conn,cursor
+from typing import Optional, List
+from datetime import datetime
+from enum import Enum
+from sqlmodel import SQLModel, Field, Session, select
+from pydantic import computed_field
 
-def db_create_order(user_id: int, shipping_address: str):
-    try:
-        cursor.execute("SELECT * FROM carts WHERE user_id = %s", (user_id,))
-        cart = cursor.fetchone()
-        if not cart:
-            return None
-        
-        cursor.execute("""
-            SELECT ci.product_id, ci.quantity, p.price 
-            FROM cart_items ci
-            JOIN products p ON ci.product_id = p.id
-            WHERE ci.cart_id = %s
-        """, (cart['id'],))
-        items = cursor.fetchall()
-        
-        if not items:
-            return None
-            
-        total_amount = sum(item['quantity'] * item['price'] for item in items)
-        
-        # Create order
-        cursor.execute("""
-            INSERT INTO orders (user_id, shipping_address, total_amount, status)
-            VALUES (%s, %s, %s, 'pending')
-            RETURNING *
-        """, (user_id, shipping_address, total_amount))
-        new_order = cursor.fetchone()
-        
-        # Move to order_items & decrement stock
-        for item in items:
-            cursor.execute("""
-                INSERT INTO order_items (order_id, product_id, quantity, price_at_purchase)
-                VALUES (%s, %s, %s, %s)
-            """, (new_order['id'], item['product_id'], item['quantity'], item['price']))
-            cursor.execute("""
-                UPDATE products SET stock = GREATEST(stock - %s, 0) WHERE id = %s
-            """, (item['quantity'], item['product_id']))
 
-        # Delete cart (cascade will delete cart_items)
-        cursor.execute("DELETE FROM carts WHERE id = %s", (cart['id'],))
-        
-        conn.commit()
-        
-        # Attach items for API response
-        new_order['items'] = db_get_order_items(new_order['id'])
-        return new_order
-    except Exception as e:
-        conn.rollback()
-        print("Error during checkout transaction:", e)
+# --- Enums ---
+class OrderStatus(str, Enum):
+    pending = "pending"
+    out_for_delivery = "out for delivery"
+    delivered = "delivered"
+    cancelled = "cancelled"
+
+
+# --- Table Models (DB) ---
+class Order(SQLModel, table=True):
+    __tablename__ = "orders"
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: int = Field(foreign_key="users.id")
+    shipping_address: str
+    total_amount: float = 0.0
+    status: str = Field(default=OrderStatus.pending)
+    created_at: Optional[datetime] = Field(default=None)
+
+class OrderItem(SQLModel, table=True):
+    __tablename__ = "order_items"
+    id: Optional[int] = Field(default=None, primary_key=True)
+    order_id: int = Field(foreign_key="orders.id")
+    product_id: int = Field(foreign_key="products.id")
+    quantity: int = 1
+    price_at_purchase: float = 0.0
+
+
+# --- Request Schemas ---
+class OrderCreate(SQLModel):
+    shipping_address: str
+
+class OrderUpdate(SQLModel):
+    status: Optional[str] = None
+
+
+# --- Response Schemas ---
+class OrderItemOut(SQLModel):
+    id: int
+    product_id: int
+    quantity: int
+    price_at_purchase: float
+    order_id: int
+
+    @computed_field
+    @property
+    def subtotal(self) -> float:
+        return self.quantity * self.price_at_purchase
+
+class OrderOut(SQLModel):
+    id: int
+    shipping_address: str
+    status: str
+    created_at: Optional[datetime] = None
+    total_amount: float
+    items: List[OrderItemOut] = []
+
+
+# --- CRUD Functions ---
+def db_get_order_items(session: Session, order_id: int):
+    return session.exec(select(OrderItem).where(OrderItem.order_id == order_id)).all()
+
+def db_create_order(session: Session, user_id: int, data: OrderCreate):
+    from Models.carts import Cart, CartItem
+    from Models.products import Product
+
+    cart = session.exec(select(Cart).where(Cart.user_id == user_id)).first()
+    if not cart:
         return None
 
-def db_get_order_items(order_id: int):
-    cursor.execute("SELECT * FROM order_items WHERE order_id = %s", (order_id,))
-    return cursor.fetchall()
+    cart_items = session.exec(select(CartItem).where(CartItem.cart_id == cart.id)).all()
+    if not cart_items:
+        return None
 
-def db_get_orders():
-    cursor.execute("SELECT * FROM orders")
-    orders = cursor.fetchall()
-    for o in orders:
-        o['items'] = db_get_order_items(o['id'])
-    return orders
+    total_amount = 0.0
+    for ci in cart_items:
+        product = session.get(Product, ci.product_id)
+        if product:
+            total_amount += ci.quantity * product.price
 
-def db_get_orders_by_user(user_id: int):
-    cursor.execute("SELECT * FROM orders WHERE user_id = %s ORDER BY id DESC", (user_id,))
-    orders = cursor.fetchall()
-    for o in orders:
-        o['items'] = db_get_order_items(o['id'])
-    return orders
+    order = Order(user_id=user_id, shipping_address=data.shipping_address, total_amount=total_amount)
+    session.add(order)
+    session.flush()  # get order.id before committing
 
-def db_get_one_order(id):
-    cursor.execute("SELECT * FROM orders WHERE id = %s", (id,))
-    order = cursor.fetchone()
-    if order:
-        order['items'] = db_get_order_items(order['id'])
+    for ci in cart_items:
+        product = session.get(Product, ci.product_id)
+        if product:
+            item = OrderItem(order_id=order.id, product_id=ci.product_id, quantity=ci.quantity, price_at_purchase=product.price)
+            session.add(item)
+            product.stock = max(product.stock - ci.quantity, 0)
+            session.add(product)
+
+    session.delete(cart)
+    session.commit()
+    session.refresh(order)
+    order_items = db_get_order_items(session, order.id)
+    return order, order_items
+
+def db_get_orders(session: Session):
+    orders = session.exec(select(Order)).all()
+    return [(o, db_get_order_items(session, o.id)) for o in orders]
+
+def db_get_orders_by_user(session: Session, user_id: int):
+    orders = session.exec(select(Order).where(Order.user_id == user_id).order_by(Order.id.desc())).all()
+    return [(o, db_get_order_items(session, o.id)) for o in orders]
+
+def db_get_one_order(session: Session, id: int):
+    order = session.get(Order, id)
+    if not order:
+        return None
+    return order, db_get_order_items(session, order.id)
+
+def db_update_order(session: Session, id: int, data: OrderUpdate):
+    order = session.get(Order, id)
+    if not order:
+        return None
+    for key, value in data.model_dump(exclude_unset=True).items():
+        setattr(order, key, value)
+    session.add(order)
+    session.commit()
+    session.refresh(order)
+    return order, db_get_order_items(session, order.id)
+
+def db_delete_order(session: Session, id: int):
+    order = session.get(Order, id)
+    if not order:
+        return None
+    session.delete(order)
+    session.commit()
     return order
 
-def db_update_order(id, update_data):
-    if not update_data:
-        return db_get_one_order(id)
-    set_clause = ", ".join([f"{key} = %s" for key in update_data.keys()])
-    values = list(update_data.values())
-    values.append(id) 
-    
-    cursor.execute(f"""
-        UPDATE orders SET {set_clause} WHERE id = %s RETURNING *
-    """, values)
-    
-    updated_order = cursor.fetchone()
-    conn.commit()
-    if updated_order:
-        updated_order['items'] = db_get_order_items(id)
-    return updated_order
-
-def db_delete_order(id):
-    cursor.execute("DELETE FROM orders WHERE id = %s RETURNING *", (id,))
-    deleted_order = cursor.fetchone()
-    conn.commit()
-    return deleted_order
-
-def db_mark_order_paid(id):
-    cursor.execute("UPDATE orders SET status = 'paid' WHERE id = %s RETURNING *", (id,))
-    updated_order = cursor.fetchone()
-    conn.commit()
-    if updated_order:
-        updated_order['items'] = db_get_order_items(id)
-    return updated_order
+def db_mark_order_paid(session: Session, id: int):
+    order = session.get(Order, id)
+    if not order:
+        return None
+    order.status = "paid"
+    session.add(order)
+    session.commit()
+    session.refresh(order)
+    return order, db_get_order_items(session, order.id)

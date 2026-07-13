@@ -1,19 +1,10 @@
-import psycopg2
-from psycopg2.extras import RealDictCursor
-import time
-from confg import DB_NAME,DB_USER,DB_PASSWORD,DB_HOST
-while True:
-    try:
-        conn = psycopg2.connect(
-            host = DB_HOST,
-            database= DB_NAME,
-            user = DB_USER,
-            password = DB_PASSWORD,
-            cursor_factory= RealDictCursor
-        )
-        cursor = conn.cursor()
-        print("connected succesfully to the database")
-        break
-    except Exception as error :
-        print("error:-" , error)
-        time.sleep(2)
+from confg import DB_NAME, DB_USER, DB_PASSWORD, DB_HOST, DB_PORT
+from sqlmodel import create_engine, Session, SQLModel
+
+
+DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+engine = create_engine(DATABASE_URL)
+def get_db():
+    with Session(engine) as session:
+        yield session
+
