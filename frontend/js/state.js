@@ -1,0 +1,17 @@
+const state = {
+    user: null,
+    currentTab: 'store',
+    products: [],
+    activeCategory: '',
+    cartItems: [],
+    vets: [],
+    selectedVet: null,
+    sessions: [],
+    currentSessionId: null,
+    freeMessageCount: 0,
+    FREE_LIMIT: 5,
+    isWaitingForBot: false,
+    mapInstance: null,
+    mapMarkers: [],
+    bookingVetId: null,
+};

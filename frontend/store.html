@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dr. Paws — Pet Store</title>
+    <meta name="description" content="Shop for your pets." />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐾</text></svg>" />
+    <link rel="stylesheet" href="css/main.css" />
+</head>
+<body>
+
+<div class="dashboard">
+    <!-- ═══════════════ SIDEBAR ═══════════════ -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-logo">
+            <div class="sidebar-logo-icon">🐾</div>
+            <span class="sidebar-logo-text">Dr. Paws</span>
+        </div>
+
+        <div class="sidebar-section-label">Menu</div>
+        <nav>
+            <button class="nav-item active" data-tab="store" id="nav-store">
+                <span class="nav-icon">🛒</span> Pet Store
+            </button>
+            <button class="nav-item" data-tab="vets" id="nav-vets">
+                <span class="nav-icon">🏥</span> Vet Finder
+            </button>
+            <button class="nav-item" data-tab="chat" id="nav-chat">
+                <span class="nav-icon">🤖</span> AI Chat
+            </button>
+            <button class="nav-item" data-tab="orders" id="nav-orders">
+                <span class="nav-icon">📦</span> My Orders
+            </button>
+            <button class="nav-item" data-tab="pets" id="nav-pets">
+                <span class="nav-icon">🐾</span> My Pets
+            </button>
+        </nav>
+
+        <div class="sidebar-section-label" style="margin-top:16px">Account</div>
+        <button class="nav-item" data-tab="settings" id="nav-settings">
+            <span class="nav-icon">⚙️</span> Settings
+        </button>
+
+        <div class="sidebar-spacer"></div>
+
+        <div class="sidebar-user">
+            <div class="user-info">
+                <div class="user-avatar" id="user-avatar">?</div>
+                <div>
+                    <div class="user-name" id="user-name">Loading...</div>
+                    <div class="user-email" id="user-email"></div>
+                </div>
+            </div>
+            <!-- Premium badge -->
+            <div id="premium-badge-wrap" class="hidden" style="margin-bottom:8px">
+                <span class="premium-badge">✨ Premium</span>
+            </div>
+            <!-- Upgrade link -->
+            <div id="upgrade-link-wrap" style="margin-bottom:8px">
+                <button class="upgrade-link" onclick="window.location.href='settings.html'">⬆ Upgrade →</button>
+            </div>
+            <button class="logout-btn" id="logout-btn">
+                <span>🚪</span> Log out
+            </button>
+        </div>
+    </aside>
+
+    <!-- ═══════════════ MAIN CONTENT ═══════════════ -->
+    <div class="main-content">
+        <!-- Header -->
+        <header class="main-header">
+            <h1 id="header-title">Pet Store</h1>
+            <div class="search-bar" id="search-bar-wrap">
+                <span>🔍</span>
+                <input type="text" id="search-input" placeholder="Search products..." />
+            </div>
+            <!-- Cart button -->
+            <button class="cart-btn" id="cart-btn" onclick="openCartDrawer()">
+                🛒 Cart
+                <span class="cart-count" id="cart-count">0</span>
+            </button>
+        </header>
+
+        <div class="tab-content" id="page-content">
+            <!-- ── STORE ─────────────────────── -->
+            <section class="tab-section active" id="tab-store">
+                <div class="section-heading"><span>🛒</span> Pet Store</div>
+                <div class="category-pills" id="category-pills">
+                    <button class="pill active" data-category="">🌟 All</button>
+                    <button class="pill" data-category="food">🍖 Food</button>
+                    <button class="pill" data-category="medicine">💊 Medicine</button>
+                    <button class="pill" data-category="toys">🎾 Toys</button>
+                    <button class="pill" data-category="grooming">🛁 Grooming</button>
+                    <button class="pill" data-category="accessories">🏷️ Accessories</button>
+                </div>
+                <div class="product-grid" id="product-grid">
+                    <div class="loading-skeleton" style="height:240px;border-radius:16px"></div>
+                    <div class="loading-skeleton" style="height:240px;border-radius:16px"></div>
+                </div>
+            </section>
+        </div>
+    </div>
+</div>
+
+<!-- ═════════════════════ CART DRAWER ═════════════════════ -->
+<div class="cart-drawer-overlay" id="cart-overlay" onclick="closeCartDrawer()"></div>
+<div class="cart-drawer" id="cart-drawer">
+    <div class="cart-header">
+        <h2>🛒 Your Cart</h2>
+        <button class="close-btn" onclick="closeCartDrawer()">✕</button>
+    </div>
+    <div class="cart-items-list" id="cart-items-list">
+        <div class="empty-state">
+            <div class="empty-icon">🛒</div>
+            <p>Your cart is empty.</p>
+        </div>
+    </div>
+    <div class="cart-footer" id="cart-footer" style="display:none">
+        <div class="cart-total">
+            <span class="cart-total-label">Total</span>
+            <span class="cart-total-amount" id="cart-total">₹0.00</span>
+        </div>
+        <div class="checkout-form">
+            <input type="text" id="shipping-address" placeholder="📍 Shipping address" />
+            <button class="btn-checkout" id="checkout-btn" onclick="placeOrder()">
+                ⚡ Place Order
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="toast-container" id="toast-container"></div>
+<script src="js/api.js"></script>
+<script src="js/common.js"></script>
+<script src="js/store.js"></script>
+</body>
+</html>

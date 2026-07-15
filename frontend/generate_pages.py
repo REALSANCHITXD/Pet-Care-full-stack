@@ -1,20 +1,18 @@
-<!DOCTYPE html>
+import os
+
+TEMPLATE = """<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Dr. Paws — Dashboard</title>
-    <meta name="description" content="Dr. Paws pet care dashboard — shop, find vets, chat with AI, track orders." />
+    <title>Dr. Paws — {title}</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐾</text></svg>" />
     <link rel="stylesheet" href="css/main.css" />
-    <!-- Leaflet.js -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    {extra_head}
 </head>
 <body>
 
 <div class="dashboard">
-
     <!-- ═══════════════ SIDEBAR ═══════════════ -->
     <aside class="sidebar" id="sidebar">
         <div class="sidebar-logo">
@@ -24,25 +22,25 @@
 
         <div class="sidebar-section-label">Menu</div>
         <nav>
-            <button class="nav-item active" data-tab="store" id="nav-store">
+            <button class="nav-item" data-tab="store" id="nav-store" onclick="window.location.href='store.html'">
                 <span class="nav-icon">🛒</span> Pet Store
             </button>
-            <button class="nav-item" data-tab="vets" id="nav-vets">
+            <button class="nav-item" data-tab="vets" id="nav-vets" onclick="window.location.href='vets.html'">
                 <span class="nav-icon">🏥</span> Vet Finder
             </button>
-            <button class="nav-item" data-tab="chat" id="nav-chat">
+            <button class="nav-item" data-tab="chat" id="nav-chat" onclick="window.location.href='chat.html'">
                 <span class="nav-icon">🤖</span> AI Chat
             </button>
-            <button class="nav-item" data-tab="orders" id="nav-orders">
+            <button class="nav-item" data-tab="orders" id="nav-orders" onclick="window.location.href='orders.html'">
                 <span class="nav-icon">📦</span> My Orders
             </button>
-            <button class="nav-item" data-tab="pets" id="nav-pets">
+            <button class="nav-item" data-tab="pets" id="nav-pets" onclick="window.location.href='pets.html'">
                 <span class="nav-icon">🐾</span> My Pets
             </button>
         </nav>
 
         <div class="sidebar-section-label" style="margin-top:16px">Account</div>
-        <button class="nav-item" data-tab="settings" id="nav-settings">
+        <button class="nav-item" data-tab="settings" id="nav-settings" onclick="window.location.href='settings.html'">
             <span class="nav-icon">⚙️</span> Settings
         </button>
 
@@ -56,13 +54,13 @@
                     <div class="user-email" id="user-email"></div>
                 </div>
             </div>
-            <!-- Premium badge (shown only for premium users) -->
+            <!-- Premium badge -->
             <div id="premium-badge-wrap" class="hidden" style="margin-bottom:8px">
                 <span class="premium-badge">✨ Premium</span>
             </div>
-            <!-- Upgrade link (shown only for free users) -->
+            <!-- Upgrade link -->
             <div id="upgrade-link-wrap" style="margin-bottom:8px">
-                <button class="upgrade-link" onclick="switchTab('settings')">⬆ Upgrade →</button>
+                <button class="upgrade-link" onclick="window.location.href='settings.html'">⬆ Upgrade →</button>
             </div>
             <button class="logout-btn" id="logout-btn">
                 <span>🚪</span> Log out
@@ -72,46 +70,36 @@
 
     <!-- ═══════════════ MAIN CONTENT ═══════════════ -->
     <div class="main-content">
-
         <!-- Header -->
         <header class="main-header">
-            <h1 id="header-title">Pet Store</h1>
-            <div class="search-bar" id="search-bar-wrap">
-                <span>🔍</span>
-                <input type="text" id="search-input" placeholder="Search products..." />
-            </div>
-            <!-- Cart button (only in store) -->
-            <button class="cart-btn" id="cart-btn" onclick="openCartDrawer()">
-                🛒 Cart
-                <span class="cart-count" id="cart-count">0</span>
-            </button>
+            <h1 id="header-title">{title}</h1>
         </header>
 
-        <!-- ═══════ TAB CONTENT ═══════ -->
-        <div class="tab-content">
+        <div class="tab-content" id="page-content">
+            {content}
+        </div>
+    </div>
+</div>
 
-            <!-- ── STORE ─────────────────────── -->
-            <section class="tab-section active" id="tab-store">
-                <div class="section-heading"><span>🛒</span> Pet Store</div>
-                <div class="category-pills" id="category-pills">
-                    <button class="pill active" data-category="">🌟 All</button>
-                    <button class="pill" data-category="food">🍖 Food</button>
-                    <button class="pill" data-category="medicine">💊 Medicine</button>
-                    <button class="pill" data-category="toys">🎾 Toys</button>
-                    <button class="pill" data-category="grooming">🛁 Grooming</button>
-                    <button class="pill" data-category="accessories">🏷️ Accessories</button>
-                </div>
-                <div class="product-grid" id="product-grid">
-                    <!-- Populated by JS -->
-                    <div class="loading-skeleton" style="height:240px;border-radius:16px"></div>
-                    <div class="loading-skeleton" style="height:240px;border-radius:16px"></div>
-                    <div class="loading-skeleton" style="height:240px;border-radius:16px"></div>
-                    <div class="loading-skeleton" style="height:240px;border-radius:16px"></div>
-                </div>
-            </section>
+{extra_body}
 
-            <!-- ── VET FINDER ─────────────────── -->
-            <section class="tab-section" id="tab-vets">
+<div class="toast-container" id="toast-container"></div>
+<script src="js/api.js"></script>
+<script src="js/common.js"></script>
+<script src="js/{name}.js"></script>
+</body>
+</html>
+"""
+
+PAGES = [
+    {
+        "name": "vets",
+        "title": "Vet Finder",
+        "extra_head": """<!-- Leaflet.js -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>""",
+        "content": """
+            <section class="tab-section active" id="tab-vets">
                 <div class="section-heading"><span>🏥</span> Vet Finder</div>
                 <div class="vet-filter-bar">
                     <input type="text" class="vet-filter-input" id="vet-specialty-filter" placeholder="Filter by specialty (e.g. Surgery)" />
@@ -169,9 +157,40 @@
                     </div>
                 </div>
             </section>
-
-            <!-- ── AI CHAT ─────────────────────── -->
-            <section class="tab-section" id="tab-chat">
+        """,
+        "extra_body": """
+<div class="modal-overlay" id="booking-modal">
+    <div class="modal">
+        <div class="modal-header">
+            <h2>📅 Book Appointment</h2>
+            <button class="close-btn" onclick="closeBookingModal()">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label class="form-label">Appointment Date & Time</label>
+                <input type="datetime-local" id="booking-datetime" class="form-input" />
+            </div>
+            <div class="form-group">
+                <label class="form-label">Reason for visit</label>
+                <input type="text" id="booking-reason" class="form-input" placeholder="e.g. Annual checkup, limping, vaccination..." />
+            </div>
+            <p class="text-sm text-muted">Vet: <strong id="booking-vet-name">—</strong></p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-secondary" onclick="closeBookingModal()">Cancel</button>
+            <button class="btn-primary" style="flex:1" onclick="confirmBooking()">Confirm Booking</button>
+        </div>
+    </div>
+</div>
+        """
+    },
+    {
+        "name": "chat",
+        "title": "AI Vet Assistant",
+        "extra_head": "",
+        "extra_body": "",
+        "content": """
+            <section class="tab-section active" id="tab-chat">
                 <div class="section-heading"><span>🤖</span> AI Vet Assistant</div>
                 <div class="chat-layout">
                     <!-- Session sidebar -->
@@ -201,7 +220,7 @@
                         <!-- Limit banner -->
                         <div class="limit-banner hidden" id="limit-banner">
                             <p>🔒 You've reached your 5 free messages for today.</p>
-                            <button class="btn-upgrade" onclick="switchTab('settings')">⬆ Upgrade</button>
+                            <button class="btn-upgrade" onclick="window.location.href='settings.html'">⬆ Upgrade</button>
                         </div>
                         <div class="messages-area" id="messages-area">
                             <div style="text-align:center;padding:40px;color:var(--text-muted)">
@@ -218,26 +237,79 @@
                     </div>
                 </div>
             </section>
-
-            <!-- ── ORDERS ─────────────────────── -->
-            <section class="tab-section" id="tab-orders">
+        """
+    },
+    {
+        "name": "orders",
+        "title": "My Orders",
+        "extra_head": "",
+        "extra_body": "",
+        "content": """
+            <section class="tab-section active" id="tab-orders">
                 <div class="section-heading"><span>📦</span> My Orders</div>
                 <div class="orders-grid" id="orders-grid">
                     <div class="loading-skeleton" style="height:120px;border-radius:16px"></div>
                     <div class="loading-skeleton" style="height:120px;border-radius:16px"></div>
                 </div>
             </section>
-
-            <!-- ── MY PETS ─────────────────────── -->
-            <section class="tab-section" id="tab-pets">
+        """
+    },
+    {
+        "name": "pets",
+        "title": "My Pets",
+        "extra_head": "",
+        "content": """
+            <section class="tab-section active" id="tab-pets">
                 <div class="section-heading"><span>🐾</span> My Pets</div>
                 <div class="pets-grid" id="pets-grid">
                     <div class="loading-skeleton" style="height:200px;border-radius:16px"></div>
                 </div>
             </section>
-
-            <!-- ── SETTINGS ─────────────────────── -->
-            <section class="tab-section" id="tab-settings">
+        """,
+        "extra_body": """
+<div class="modal-overlay" id="add-pet-modal">
+    <div class="modal">
+        <div class="modal-header">
+            <h2>🐾 Add a Pet</h2>
+            <button class="close-btn" onclick="closeAddPetModal()">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label class="form-label">Pet Name</label>
+                <input type="text" id="pet-name" class="form-input" placeholder="e.g. Buddy" />
+            </div>
+            <div class="form-group">
+                <label class="form-label">Species</label>
+                <input type="text" id="pet-species" class="form-input" placeholder="e.g. Dog, Cat, Rabbit..." />
+            </div>
+            <div class="form-group">
+                <label class="form-label">Breed</label>
+                <input type="text" id="pet-breed" class="form-input" placeholder="e.g. Golden Retriever" />
+            </div>
+            <div class="form-group">
+                <label class="form-label">Age (years)</label>
+                <input type="number" id="pet-age" class="form-input" placeholder="e.g. 3" min="0" step="0.5" />
+            </div>
+            <div class="form-group">
+                <label class="form-label">Medical History (optional)</label>
+                <input type="text" id="pet-history" class="form-input" placeholder="e.g. Allergic to pollen..." />
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-secondary" onclick="closeAddPetModal()">Cancel</button>
+            <button class="btn-primary" style="flex:1" onclick="submitAddPet()">Add Pet 🐾</button>
+        </div>
+    </div>
+</div>
+        """
+    },
+    {
+        "name": "settings",
+        "title": "Settings & Account",
+        "extra_head": "",
+        "extra_body": "",
+        "content": """
+            <section class="tab-section active" id="tab-settings">
                 <div class="section-heading"><span>⚙️</span> Settings & Account</div>
                 <div class="settings-card">
                     <h2>Account Info</h2>
@@ -276,7 +348,7 @@
                 </div>
 
                 <div class="upgrade-banner" id="upgrade-banner">
-                    <h2>&#10024; Upgrade to Premium</h2>
+                    <h2>✨ Upgrade to Premium</h2>
                     <p>Unlock the full Dr. Paws experience.</p>
                     <ul class="upgrade-features">
                         <li>Unlimited AI Vet Chatbot queries</li>
@@ -284,114 +356,17 @@
                         <li>Free instant delivery on the Pet Store</li>
                         <li>Exclusive Premium badge</li>
                     </ul>
-                    <button class="btn-go-premium">&#11088; Go Premium &#x2014; &#x20B9;299/month</button>
+                    <button class="btn-go-premium">🌟 Go Premium — ₹299/month</button>
                 </div>
             </section>
+        """
+    }
+]
 
-        </div><!-- /tab-content -->
-    </div><!-- /main-content -->
-</div><!-- /dashboard -->
+for page in PAGES:
+    filename = f"{page['name']}.html"
+    content = TEMPLATE.format(**page)
+    with open(filename, "w", encoding="utf-8") as f:
+        f.write(content)
 
-<!-- ═════════════════════ CART DRAWER ═════════════════════ -->
-<div class="cart-drawer-overlay" id="cart-overlay" onclick="closeCartDrawer()"></div>
-<div class="cart-drawer" id="cart-drawer">
-    <div class="cart-header">
-        <h2>🛒 Your Cart</h2>
-        <button class="close-btn" onclick="closeCartDrawer()">✕</button>
-    </div>
-    <div class="cart-items-list" id="cart-items-list">
-        <div class="empty-state">
-            <div class="empty-icon">🛒</div>
-            <p>Your cart is empty.</p>
-        </div>
-    </div>
-    <div class="cart-footer" id="cart-footer" style="display:none">
-        <div class="cart-total">
-            <span class="cart-total-label">Total</span>
-            <span class="cart-total-amount" id="cart-total">₹0.00</span>
-        </div>
-        <div class="checkout-form">
-            <input type="text" id="shipping-address" placeholder="📍 Shipping address" />
-            <button class="btn-checkout" id="checkout-btn" onclick="placeOrder()">
-                ⚡ Place Order
-            </button>
-        </div>
-    </div>
-</div>
-
-<!-- ═════════════════════ BOOKING MODAL ═════════════════════ -->
-<div class="modal-overlay" id="booking-modal">
-    <div class="modal">
-        <div class="modal-header">
-            <h2>📅 Book Appointment</h2>
-            <button class="close-btn" onclick="closeBookingModal()">✕</button>
-        </div>
-        <div class="modal-body">
-            <div class="form-group">
-                <label class="form-label">Appointment Date & Time</label>
-                <input type="datetime-local" id="booking-datetime" class="form-input" />
-            </div>
-            <div class="form-group">
-                <label class="form-label">Reason for visit</label>
-                <input type="text" id="booking-reason" class="form-input" placeholder="e.g. Annual checkup, limping, vaccination..." />
-            </div>
-            <p class="text-sm text-muted">Vet: <strong id="booking-vet-name">—</strong></p>
-        </div>
-        <div class="modal-footer">
-            <button class="btn-secondary" onclick="closeBookingModal()">Cancel</button>
-            <button class="btn-primary" style="flex:1" onclick="confirmBooking()">Confirm Booking</button>
-        </div>
-    </div>
-</div>
-
-<!-- ═════════════════════ ADD PET MODAL ═════════════════════ -->
-<div class="modal-overlay" id="add-pet-modal">
-    <div class="modal">
-        <div class="modal-header">
-            <h2>🐾 Add a Pet</h2>
-            <button class="close-btn" onclick="closeAddPetModal()">✕</button>
-        </div>
-        <div class="modal-body">
-            <div class="form-group">
-                <label class="form-label">Pet Name</label>
-                <input type="text" id="pet-name" class="form-input" placeholder="e.g. Buddy" />
-            </div>
-            <div class="form-group">
-                <label class="form-label">Species</label>
-                <input type="text" id="pet-species" class="form-input" placeholder="e.g. Dog, Cat, Rabbit..." />
-            </div>
-            <div class="form-group">
-                <label class="form-label">Breed</label>
-                <input type="text" id="pet-breed" class="form-input" placeholder="e.g. Golden Retriever" />
-            </div>
-            <div class="form-group">
-                <label class="form-label">Age (years)</label>
-                <input type="number" id="pet-age" class="form-input" placeholder="e.g. 3" min="0" step="0.5" />
-            </div>
-            <div class="form-group">
-                <label class="form-label">Medical History (optional)</label>
-                <input type="text" id="pet-history" class="form-input" placeholder="e.g. Allergic to pollen..." />
-            </div>
-        </div>
-        <div class="modal-footer">
-            <button class="btn-secondary" onclick="closeAddPetModal()">Cancel</button>
-            <button class="btn-primary" style="flex:1" onclick="submitAddPet()">Add Pet 🐾</button>
-        </div>
-    </div>
-</div>
-
-<!-- ═════════════════════ TOAST CONTAINER ═════════════════════ -->
-<div class="toast-container" id="toast-container"></div>
-
-<script src="js/api.js"></script>
-<script src="js/state.js"></script>
-<script src="js/helpers.js"></script>
-<script src="js/store.js"></script>
-<script src="js/vets.js"></script>
-<script src="js/chat.js"></script>
-<script src="js/orders.js"></script>
-<script src="js/pets.js"></script>
-<script src="js/settings.js"></script>
-<script src="js/dashboard.js"></script>
-</body>
-</html>
+print("Generated all pages!")
