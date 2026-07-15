@@ -145,7 +145,11 @@ async function confirmBooking() {
     const dateTime = document.getElementById('booking-datetime').value;
     const reason = document.getElementById('booking-reason').value.trim();
     if (!dateTime) { showToast('Please select a date and time.', 'error'); return; }
-    if (!state.user) return;
+    if (!state.user) { showToast('User not loaded. Please refresh.', 'error'); return; }
+    if (!state.bookingVetId) { showToast('No vet selected.', 'error'); return; }
+
+    const btn = document.querySelector('#booking-modal .btn-primary');
+    if (btn) { btn.disabled = true; btn.textContent = 'Booking...'; }
 
     try {
         const res = await api.post('/bookings', {
@@ -154,11 +158,22 @@ async function confirmBooking() {
             appointment_time: new Date(dateTime).toISOString(),
             reason: reason || 'General consultation',
         });
-        if (!res) return;
+        if (!res) { showToast('No response from server.', 'error'); return; }
         const data = await res.json();
-        if (!res.ok) { showToast(data.detail || 'Booking failed.', 'error'); return; }
+        if (!res.ok) { 
+            showToast(data.detail || 'Booking failed.', 'error');
+            return;
+        }
+        // Clear form inputs
+        document.getElementById('booking-datetime').value = '';
+        document.getElementById('booking-reason').value = '';
         closeBookingModal();
         closeVetPanel();
         showToast('Appointment booked! 🏥', 'success');
-    } catch { showToast('Server error.', 'error'); }
+        switchTab('bookings');
+    } catch(e) { 
+        showToast('Server error: ' + (e.message || 'Unknown'), 'error'); 
+    } finally {
+        if (btn) { btn.disabled = false; btn.textContent = 'Confirm Booking'; }
+    }
 }

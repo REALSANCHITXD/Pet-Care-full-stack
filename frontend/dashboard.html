@@ -3,10 +3,11 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Dr. Paws — Dashboard</title>
+    <title>Dr. Paws | Premium Pet Care</title>
     <meta name="description" content="Dr. Paws pet care dashboard — shop, find vets, chat with AI, track orders." />
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐾</text></svg>" />
-    <link rel="stylesheet" href="css/main.css" />
+    <!-- Add cache-busting to CSS so new slider styles apply immediately -->
+    <link rel="stylesheet" href="css/main.css?v=2" />
     <!-- Leaflet.js -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -35,6 +36,9 @@
             </button>
             <button class="nav-item" data-tab="orders" id="nav-orders">
                 <span class="nav-icon">📦</span> My Orders
+            </button>
+            <button class="nav-item" data-tab="bookings" id="nav-bookings">
+                <span class="nav-icon">📅</span> My Bookings
             </button>
             <button class="nav-item" data-tab="pets" id="nav-pets">
                 <span class="nav-icon">🐾</span> My Pets
@@ -93,13 +97,34 @@
             <!-- ── STORE ─────────────────────── -->
             <section class="tab-section active" id="tab-store">
                 <div class="section-heading"><span>🛒</span> Pet Store</div>
-                <div class="category-pills" id="category-pills">
-                    <button class="pill active" data-category="">🌟 All</button>
-                    <button class="pill" data-category="food">🍖 Food</button>
-                    <button class="pill" data-category="medicine">💊 Medicine</button>
-                    <button class="pill" data-category="toys">🎾 Toys</button>
-                    <button class="pill" data-category="grooming">🛁 Grooming</button>
-                    <button class="pill" data-category="accessories">🏷️ Accessories</button>
+                <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:16px;">
+                    <div class="category-pills" id="category-pills" style="margin-bottom:0;flex-wrap:wrap;gap:8px;display:flex;">
+                        <button class="pill active" data-category="">🌟 All</button>
+                        <button class="pill" data-category="food">🍖 Food</button>
+                        <button class="pill" data-category="medicine">💊 Medicine</button>
+                        <button class="pill" data-category="toys">🎾 Toys</button>
+                        <button class="pill" data-category="grooming">🛁 Grooming</button>
+                        <button class="pill" data-category="accessories">🏷️ Accessories</button>
+                    </div>
+                    <!-- Amazon-style price filter pill (far right) -->
+                    <div id="price-filter-wrap" style="position:relative;flex-shrink:0;">
+                        <button class="pill" id="price-pill-btn" onclick="togglePricePopup()">
+                            💰 <span id="price-pill-label">Price</span>
+                        </button>
+                        <div class="price-popup" id="price-popup">
+                            <div class="price-popup-header">
+                                <span>Price Range</span>
+                                <span id="price-popup-range" style="font-weight:700;color:var(--accent-teal);">₹0 – ₹0</span>
+                            </div>
+                            <div style="position:relative;height:20px;margin:18px 4px 10px;">
+                                <div style="position:absolute;top:50%;transform:translateY(-50%);height:4px;width:100%;background:var(--border-light);border-radius:4px;"></div>
+                                <div id="price-track-fill" style="position:absolute;top:50%;transform:translateY(-50%);height:4px;background:var(--accent-teal);border-radius:4px;left:0%;right:0%;pointer-events:none;z-index:1;"></div>
+                                <input type="range" class="price-range-input" id="price-slider-min" min="0" max="10000" value="0" step="1" oninput="onPriceSlide()" />
+                                <input type="range" class="price-range-input" id="price-slider-max" min="0" max="10000" value="10000" step="1" oninput="onPriceSlide()" />
+                            </div>
+                            <button onclick="resetPriceFilter()" style="margin-top:4px;width:100%;padding:6px;border-radius:6px;border:1px solid var(--border-light);background:transparent;color:var(--text-secondary);font-size:0.8rem;cursor:pointer;">Reset</button>
+                        </div>
+                    </div>
                 </div>
                 <div class="product-grid" id="product-grid">
                     <!-- Populated by JS -->
@@ -225,6 +250,14 @@
                 <div class="orders-grid" id="orders-grid">
                     <div class="loading-skeleton" style="height:120px;border-radius:16px"></div>
                     <div class="loading-skeleton" style="height:120px;border-radius:16px"></div>
+                </div>
+            </section>
+
+            <!-- ── BOOKINGS ─────────────────────── -->
+            <section class="tab-section" id="tab-bookings">
+                <div class="section-heading"><span>📅</span> My Bookings</div>
+                <div class="bookings-grid" id="bookings-grid" style="display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));">
+                    <div class="loading-skeleton" style="height:140px;border-radius:16px"></div>
                 </div>
             </section>
 
@@ -390,6 +423,7 @@
 <script src="js/vets.js"></script>
 <script src="js/chat.js"></script>
 <script src="js/orders.js"></script>
+<script src="js/bookings.js"></script>
 <script src="js/pets.js"></script>
 <script src="js/settings.js"></script>
 <script src="js/dashboard.js"></script>

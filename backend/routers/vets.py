@@ -1,5 +1,5 @@
 from fastapi import APIRouter, status, HTTPException, Depends
-from typing import List
+from typing import List, Optional
 from sqlmodel import Session
 
 from database import get_db
@@ -21,7 +21,7 @@ def get_all_vets(skip: int = 0, limit: int = 20, db: Session = Depends(get_db)):
     return db_get_all_vet(db, skip, limit)
 
 @router.get("/vets/search/specialties", response_model=List[VetOut], status_code=status.HTTP_200_OK)
-def filter_vets(specialties: str, clinic_name: str, db: Session = Depends(get_db)):
+def filter_vets(specialties: Optional[str] = None, clinic_name: Optional[str] = None, db: Session = Depends(get_db)):
     return db_filter_vets(db, specialties, clinic_name)
 
 @router.get("/vets/search/rating", response_model=List[VetOut], status_code=status.HTTP_200_OK)

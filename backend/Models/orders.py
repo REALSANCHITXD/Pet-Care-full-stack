@@ -21,7 +21,7 @@ class Order(SQLModel, table=True):
     shipping_address: str
     total_amount: float = 0.0
     status: str = Field(default=OrderStatus.pending)
-    created_at: Optional[datetime] = Field(default=None)
+    created_at: Optional[datetime] = Field(default_factory=datetime.utcnow)
 
 class OrderItem(SQLModel, table=True):
     __tablename__ = "order_items"
@@ -95,6 +95,7 @@ def db_create_order(session: Session, user_id: int, data: OrderCreate):
             session.add(item)
             product.stock = max(product.stock - ci.quantity, 0)
             session.add(product)
+        session.delete(ci)
 
     session.delete(cart)
     session.commit()

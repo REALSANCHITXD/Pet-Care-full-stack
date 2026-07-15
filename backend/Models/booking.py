@@ -11,8 +11,8 @@ class Booking(SQLModel, table=True):
     vet_id: int = Field(foreign_key="vets.id")
     appointment_time: datetime
     reason: Optional[str] = None
-    status: str = Field(default="pending")
-    created_at: Optional[datetime] = Field(default=None)
+    status: str = Field(default="booked")
+    created_at: Optional[datetime] = Field(default_factory=datetime.utcnow)
 
 
 # --- Request Schemas ---
@@ -41,7 +41,6 @@ class BookingOut(SQLModel):
 
 # --- CRUD Functions ---
 def db_booking_create(session: Session, data: BookingCreate):
-    # Check for collision
     collision = session.exec(
         select(Booking).where(
             Booking.vet_id == data.vet_id,

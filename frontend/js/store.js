@@ -15,14 +15,102 @@ function setupSearch() {
 
 async function loadProducts(category = '') {
     state.activeCategory = category;
-    let url = '/products';
-    if (category) url += `?category=${encodeURIComponent(category)}`;
+    const hasFilters = !!category;
+    let url = hasFilters ? `/products/search?category=${encodeURIComponent(category)}` : '/products';
     try {
         const res = await api.get(url);
         if (!res || !res.ok) { showToast('Could not load products.', 'error'); return; }
         state.products = await res.json();
+        initPriceSlider(state.products);
         renderProducts(state.products);
     } catch { showToast('Server error loading products.', 'error'); }
+}
+
+function togglePricePopup() {
+    const popup = document.getElementById('price-popup');
+    popup.classList.toggle('open');
+}
+
+function closePricePopup() {
+    document.getElementById('price-popup').classList.remove('open');
+}
+
+// Close popup when clicking anywhere outside
+document.addEventListener('click', e => {
+    const wrap = document.getElementById('price-filter-wrap');
+    if (wrap && !wrap.contains(e.target)) closePricePopup();
+});
+
+function initPriceSlider(products) {
+    if (!products || products.length === 0) return;
+    const prices = products.map(p => Number(p.price));
+    const minPrice = Math.floor(Math.min(...prices));
+    const maxPrice = Math.ceil(Math.max(...prices));
+
+    const sliderMin = document.getElementById('price-slider-min');
+    const sliderMax = document.getElementById('price-slider-max');
+    if (!sliderMin || !sliderMax) return;
+
+    sliderMin.min = minPrice;  sliderMin.max = maxPrice;  sliderMin.value = minPrice;
+    sliderMax.min = minPrice;  sliderMax.max = maxPrice;  sliderMax.value = maxPrice;
+    updateSliderUI(minPrice, maxPrice, minPrice, maxPrice);
+    // Reset pill label
+    document.getElementById('price-pill-label').textContent = 'Price';
+    document.getElementById('price-pill-btn').classList.remove('active');
+}
+
+function resetPriceFilter() {
+    const sliderMin = document.getElementById('price-slider-min');
+    const sliderMax = document.getElementById('price-slider-max');
+    if (sliderMin && sliderMax) {
+        sliderMin.value = sliderMin.min;
+        sliderMax.value = sliderMax.max;
+        updateSliderUI(Number(sliderMin.min), Number(sliderMax.max), Number(sliderMin.min), Number(sliderMax.max));
+    }
+    document.getElementById('price-pill-label').textContent = 'Price';
+    document.getElementById('price-pill-btn').classList.remove('active');
+    closePricePopup();
+    renderProducts(state.products);
+}
+
+function onPriceSlide() {
+    const sliderMin = document.getElementById('price-slider-min');
+    const sliderMax = document.getElementById('price-slider-max');
+    let minVal = Number(sliderMin.value);
+    let maxVal = Number(sliderMax.value);
+
+    // Prevent thumbs from crossing
+    if (minVal > maxVal) {
+        if (event.target === sliderMin) { sliderMin.value = maxVal; minVal = maxVal; }
+        else { sliderMax.value = minVal; maxVal = minVal; }
+    }
+
+    updateSliderUI(Number(sliderMin.min), Number(sliderMin.max), minVal, maxVal);
+
+    // Filter client-side instantly
+    const filtered = state.products.filter(p => p.price >= minVal && p.price <= maxVal);
+    renderProducts(filtered);
+
+    // Update pill label to show active range
+    const isFullRange = minVal == Number(sliderMin.min) && maxVal == Number(sliderMax.max);
+    const pillLabel = document.getElementById('price-pill-label');
+    const pillBtn = document.getElementById('price-pill-btn');
+    if (!isFullRange) {
+        pillLabel.textContent = `₹${minVal}–₹${maxVal}`;
+        pillBtn.classList.add('active');
+    } else {
+        pillLabel.textContent = 'Price';
+        pillBtn.classList.remove('active');
+    }
+}
+
+function updateSliderUI(absMin, absMax, minVal, maxVal) {
+    document.getElementById('price-popup-range').textContent = `₹${minVal} – ₹${maxVal}`;
+    const range = absMax - absMin || 1;
+    const leftPct  = ((minVal - absMin) / range) * 100;
+    const rightPct = ((absMax - maxVal) / range) * 100;
+    const fill = document.getElementById('price-track-fill');
+    if (fill) { fill.style.left = leftPct + '%'; fill.style.right = rightPct + '%'; }
 }
 
 function renderProducts(products) {

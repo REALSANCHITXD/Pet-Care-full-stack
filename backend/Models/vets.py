@@ -83,10 +83,13 @@ def db_delete_vet(session: Session, id: int):
     session.commit()
     return vet
 
-def db_filter_vets(session: Session, specialties: str, clinic_name: str):
-    return session.exec(
-        select(Vet).where(Vet.specialties == specialties, Vet.clinic_name == clinic_name)
-    ).all()
+def db_filter_vets(session: Session, specialties: Optional[str] = None, clinic_name: Optional[str] = None):
+    query = select(Vet)
+    if specialties:
+        query = query.where(Vet.specialties.ilike(f"%{specialties}%"))
+    if clinic_name:
+        query = query.where(Vet.clinic_name.ilike(f"%{clinic_name}%"))
+    return session.exec(query).all()
 
 def db_filter_rating_vet(session: Session, rating: float, clinic_name: str):
     return session.exec(

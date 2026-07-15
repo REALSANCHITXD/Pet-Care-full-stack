@@ -507,6 +507,91 @@ input, select, textarea { font-family: inherit; outline: none; }
     box-shadow: var(--shadow-purple);
 }
 
+/* ── Amazon-style Price Filter Popup ───────────────────── */
+.price-popup {
+    display: none;
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;         /* anchors to right edge of pill */
+    left: auto;
+    z-index: 500;
+    background: var(--bg-card);
+    border: 1px solid var(--border-light);
+    border-radius: var(--r-md);
+    padding: 16px;
+    width: 240px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04);
+    animation: popupIn 0.15s ease;
+}
+.price-popup.open { display: block; }
+
+@keyframes popupIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.price-popup-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+}
+
+/* ── Dual-thumb Range Slider ───────────────────────────── */
+.price-range-input {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    background: transparent;
+    appearance: none;
+    -webkit-appearance: none;
+    pointer-events: none;  /* track is not clickable */
+    outline: none;
+    margin: 0;
+}
+
+.price-range-input::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--accent-teal);
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 3px var(--accent-teal-glow), 0 2px 6px rgba(0,0,0,0.4);
+    cursor: grab;
+    pointer-events: all;   /* thumb IS clickable */
+    transition: transform 0.15s, box-shadow 0.15s;
+    position: relative;
+    z-index: 3;
+}
+
+.price-range-input::-webkit-slider-thumb:active {
+    cursor: grabbing;
+    transform: scale(1.2);
+    box-shadow: 0 0 0 5px var(--accent-teal-glow);
+}
+
+.price-range-input::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--accent-teal);
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 3px var(--accent-teal-glow);
+    cursor: grab;
+    pointer-events: all;
+}
+
+.price-range-input::-webkit-slider-runnable-track {
+    background: transparent;
+    height: 4px;
+}
+
 .product-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -779,7 +864,18 @@ input, select, textarea { font-family: inherit; outline: none; }
 }
 
 /* Override Leaflet dark */
-.leaflet-container { background: #10101c !important; }
+.leaflet-container { 
+    background: #10101c !important; 
+    z-index: 10 !important; /* Forces a stacking context so Leaflet cannot escape and cover modals */
+}
+
+/* Keep Leaflet below our modals & panels */
+.leaflet-pane         { z-index: 400 !important; }
+.leaflet-top,
+.leaflet-bottom       { z-index: 401 !important; }
+.leaflet-popup-pane   { z-index: 500 !important; }
+.leaflet-tooltip-pane { z-index: 501 !important; }
+
 .leaflet-tile { filter: brightness(0.8) saturate(0.7) hue-rotate(185deg); }
 .leaflet-popup-content-wrapper {
     background: var(--bg-card) !important;
@@ -1384,7 +1480,7 @@ input, select, textarea { font-family: inherit; outline: none; }
     inset: 0;
     background: rgba(0,0,0,0.7);
     backdrop-filter: blur(6px);
-    z-index: 300;
+    z-index: 1001; /* must beat Leaflet's max ~700 */
     display: flex;
     align-items: center;
     justify-content: center;

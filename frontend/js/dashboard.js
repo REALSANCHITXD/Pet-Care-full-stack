@@ -97,7 +97,7 @@ function switchTab(tab) {
     document.querySelectorAll('.tab-section').forEach(s => s.classList.toggle('active', s.id === `tab-${tab}`));
 
     // Update header title
-    const titles = { store:'Pet Store', vets:'Vet Finder', chat:'AI Vet Assistant', orders:'My Orders', pets:'My Pets', settings:'Settings' };
+    const titles = { store:'Pet Store', vets:'Vet Finder', chat:'AI Vet Assistant', orders:'My Orders', bookings:'My Bookings', pets:'My Pets', settings:'Settings' };
     document.getElementById('header-title').textContent = titles[tab] || '';
 
     // Cart button only on store
@@ -108,5 +108,6 @@ function switchTab(tab) {
     if (tab === 'vets' && state.vets.length === 0) initVetFinder();
     if (tab === 'chat' && state.sessions.length === 0) loadSessions();
     if (tab === 'orders') loadOrders();
+    if (tab === 'bookings') loadBookings();
     if (tab === 'pets') loadPets();
 }
